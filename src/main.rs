@@ -1,16 +1,18 @@
 use clap::{Args,Parser,Subcommand};
-use crossterm::style::ContentStyle;
 use reqwest::{header::{HeaderMap, HeaderValue},Body};
 use std::{path::PathBuf, io::{Read, self, Write}};
-use input_stream::InputStream;
-use tokio::fs::File;
+use tokio::{fs::File, time::sleep};
 use tokio_util::codec::{BytesCodec, FramedRead};
-use futures::stream::TryStreamExt;
-use ml_progress::progress;
 use std::fs;
+use std::sync::{Arc, Mutex};
+use futures::future::join_all;
 
 
 use aliyun_oss_client::{client::{Client, ReqeustHandler}, errors::{OssResult, OssError}, auth::VERB};
+
+mod upload;
+
+use upload::Upload;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -61,10 +63,6 @@ use std::env;
 async fn main() {
     let args = Cli::parse();
 
-    let mut stdout = io::stdout().lock();
-
-            stdout.write_all(b"hello world").unwrap();
-
     dotenv().ok();
 
     match args.command {
@@ -81,16 +79,13 @@ async fn main() {
             let endpoint = endpoint.unwrap_or(env::var("ALIYUN_ENDPOINT").unwrap());
             let bucket = bucket.unwrap_or(env::var("ALIYUN_BUCKET").unwrap());
             
-            // let client = aliyun_oss_client::client(&key,&secret, &endpoint, &bucket);
+            let client = aliyun_oss_client::client(&key,&secret, &endpoint, &bucket);
+
+            let upload = Upload::new(client, &source, target);
             //     let res = client.put_file(source, target.as_str()).await;
             //     println!("res: {res:?}");
             
-            // let paths = fs::read_dir(source).unwrap();
-
-            // for path in paths {
-            //     //let f = fs::File::open(path.unwrap().path());
-            //     println!("Name: {:?}", path.unwrap().file_name())
-            // }
+            upload.action().await;
 
             
 
