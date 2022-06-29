@@ -1,7 +1,6 @@
 use std::{path::PathBuf,fs};
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
-use aliyun_oss_client::errors::OssError;
 use futures::future::join_all;
 
 use aliyun_oss_client::client::Client;
