@@ -1,5 +1,6 @@
-use clap::{Args,Parser,Subcommand};
-use errors::{CliError, CliResult};
+
+use clap::Parser;
+use errors::{CliResult};
 use reqwest::{header::{HeaderMap, HeaderValue},Body};
 use std::{path::PathBuf, io::{Read}};
 use tokio::{fs::File};
@@ -7,50 +8,13 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 
 use aliyun_oss_client::{client::{Client, ReqeustHandler}, errors::{OssResult, OssError}, auth::VERB};
 
+mod app;
 mod upload;
+mod download;
 mod errors;
 
 use upload::Upload;
-
-#[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
-struct Cli {
-    #[clap(subcommand)]
-    command: Commands,
-}
-
-#[derive(Debug, Subcommand)]
-enum Commands {
-    #[clap(arg_required_else_help = true)]
-    Up{
-        /// 本地文件路径
-        #[clap(value_parser)]
-        source: PathBuf,
-
-        /// OSS 文件 key
-        #[clap(value_parser)]
-        target: String,
-
-        #[clap(short, long, value_parser)]
-        key: Option<String>,
-        #[clap(short, long, value_parser)]
-        secret: Option<String>,
-        #[clap(short, long, value_parser)]
-        endpoint: Option<String>,
-        #[clap(short, long, value_parser)]
-        bucket: Option<String>,
-    },
-    #[clap(arg_required_else_help = true)]
-    Down{
-        /// OSS 文件 key
-        #[clap(value_parser)]
-        source: String,
-
-        /// 本地文件路径
-        #[clap(value_parser)]
-        target: PathBuf,
-    }
-}
+use app::{Cli, Commands};
 
 extern crate dotenv;
 
@@ -84,8 +48,20 @@ async fn main() -> CliResult<()>{
             let res = upload.upload().await?;
             println!("upload: {:?}", res);
         },
-        Commands::Down{ source, target} => {
-
+        Commands::Down{
+            source,
+            target,
+            key,
+            secret,
+            endpoint,
+            bucket
+        } => {
+            let key = key.unwrap_or(env::var("ALIYUN_KEY_ID")?);
+            let secret = secret.unwrap_or(env::var("ALIYUN_KEY_SECRET")?);
+            let endpoint = endpoint.unwrap_or(env::var("ALIYUN_ENDPOINT")?);
+            let bucket = bucket.unwrap_or(env::var("ALIYUN_BUCKET")?);
+            
+            let client = aliyun_oss_client::client(&key,&secret, &endpoint, &bucket);
         }
     }
 
