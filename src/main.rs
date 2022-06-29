@@ -1,4 +1,5 @@
 use clap::{Args,Parser,Subcommand};
+use errors::{CliError, CliResult};
 use reqwest::{header::{HeaderMap, HeaderValue},Body};
 use std::{path::PathBuf, io::{Read}};
 use tokio::{fs::File};
@@ -7,6 +8,7 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 use aliyun_oss_client::{client::{Client, ReqeustHandler}, errors::{OssResult, OssError}, auth::VERB};
 
 mod upload;
+mod errors;
 
 use upload::Upload;
 
@@ -56,7 +58,7 @@ use dotenv::dotenv;
 use std::env;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> CliResult<()>{
     let args = Cli::parse();
 
     dotenv().ok();
@@ -70,24 +72,24 @@ async fn main() {
             endpoint,
             bucket
         } => {
-            let key = key.unwrap_or(env::var("ALIYUN_KEY_ID").unwrap());
-            let secret = secret.unwrap_or(env::var("ALIYUN_KEY_SECRET").unwrap());
-            let endpoint = endpoint.unwrap_or(env::var("ALIYUN_ENDPOINT").unwrap());
-            let bucket = bucket.unwrap_or(env::var("ALIYUN_BUCKET").unwrap());
+            let key = key.unwrap_or(env::var("ALIYUN_KEY_ID")?);
+            let secret = secret.unwrap_or(env::var("ALIYUN_KEY_SECRET")?);
+            let endpoint = endpoint.unwrap_or(env::var("ALIYUN_ENDPOINT")?);
+            let bucket = bucket.unwrap_or(env::var("ALIYUN_BUCKET")?);
             
             let client = aliyun_oss_client::client(&key,&secret, &endpoint, &bucket);
 
             let upload = Upload::new(client, &source, target);
-            //     let res = client.put_file(source, target.as_str()).await;
-            //     println!("res: {res:?}");
             
-            upload.action().await;
-
+            let res = upload.upload().await?;
+            println!("upload: {:?}", res);
         },
         Commands::Down{ source, target} => {
 
         }
     }
+
+    Ok(())
 
 }
 
