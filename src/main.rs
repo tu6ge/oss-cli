@@ -1,12 +1,8 @@
 use clap::{Args,Parser,Subcommand};
 use reqwest::{header::{HeaderMap, HeaderValue},Body};
-use std::{path::PathBuf, io::{Read, self, Write}};
-use tokio::{fs::File, time::sleep};
+use std::{path::PathBuf, io::{Read}};
+use tokio::{fs::File};
 use tokio_util::codec::{BytesCodec, FramedRead};
-use std::fs;
-use std::sync::{Arc, Mutex};
-use futures::future::join_all;
-
 
 use aliyun_oss_client::{client::{Client, ReqeustHandler}, errors::{OssResult, OssError}, auth::VERB};
 
@@ -87,8 +83,6 @@ async fn main() {
             
             upload.action().await;
 
-            
-
         },
         Commands::Down{ source, target} => {
 
@@ -97,6 +91,7 @@ async fn main() {
 
 }
 
+#[allow(unused)]
 async fn put_content_process(client: &Client<'_>) -> OssResult<String>{
     let file_path = "9AB932LY.jpeg";
     let mut file_size = std::fs::File::open(file_path)?;

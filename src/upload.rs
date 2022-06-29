@@ -1,10 +1,6 @@
-use std::rc::Rc;
 use std::{path::PathBuf,fs};
-use core::time;
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
-use futures::executor::block_on;
 use futures::future::join_all;
 
 use aliyun_oss_client::client::Client;
@@ -33,6 +29,24 @@ impl<'a> Upload<'a> {
       return;
     }
 
+    // use std::collections::HashMap;
+
+    // let mut resp_list = Vec::new();
+
+    // for i in 0..4{
+    //   let resp = async {
+    //     let res = reqwest::get("https://httpbin.org/ip")
+    //       .await.unwrap()
+    //       .json::<HashMap<String, String>>()
+    //       .await.unwrap();
+    //     println!("result:{:?}", res);
+    //     Ok::<(), String>(())
+    //   };
+  
+    //   resp_list.push(resp);
+    // }
+    // let res = join_all(resp_list).await;
+    
     self.all_path().await;
     
   }
@@ -55,36 +69,34 @@ impl<'a> Upload<'a> {
     let mut tasks = Vec::new();
 
     let paths = fs::read_dir(self.source).unwrap();
+    let paths_count = fs::read_dir(self.source).unwrap();
 
-    let total = 5;
+    let total = paths_count.count();
+
+    let base_target = Arc::new(self.target.as_str());
 
     for path in paths {
       let count = current_count.clone();
-      //let f = fs::File::open(path.unwrap().path());
+      let base_target_copy = base_target.clone();
       
-      let task = async move{
-        let mut count = count.lock().unwrap();
-        *count += 1;
-
+      let task = async move {
         let path = path.unwrap();
-
         let file = path.metadata().unwrap();
         let file_name = path.file_name();
-        print!("正在上传: {:?}({})   [{}/{}]\r", file_name, file.len(), count, total);
+        let target = String::from(*base_target_copy) + file_name.to_str().unwrap();
+
+        let res = self.client.put_file(path.path(), &target).await;
+
+        let mut count = count.lock().unwrap();
+        *count += 1;
+        print!("正在上传: {:?}(size:{})   [{}/{}]                         \r", file_name, file.len(), count, total);
         io::stdout().flush().unwrap();
-
-        let target = self.target.clone() + file_name.to_str().unwrap();
-
-        let res = self.client.put_file(path.path(), target.as_str()).await.unwrap();
         res
       };
       tasks.push(task);
     }
     
-    futures::executor::block_on(async{
-      let res = join_all(tasks).await;
-      println!("上传结果:{:?}", res);
-    });
-    println!("上传完成 [5/5]");
+    let _res = join_all(tasks).await;
+    println!("上传完成");
   }
 }
