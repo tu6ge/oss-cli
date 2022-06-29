@@ -22,35 +22,17 @@ impl<'a> Upload<'a> {
     }
   }
 
+  /// 执行上传
   pub async fn action(&self){
-
     if self.source.metadata().unwrap().is_file() {
       self.one_file().await;
       return;
     }
-
-    // use std::collections::HashMap;
-
-    // let mut resp_list = Vec::new();
-
-    // for i in 0..4{
-    //   let resp = async {
-    //     let res = reqwest::get("https://httpbin.org/ip")
-    //       .await.unwrap()
-    //       .json::<HashMap<String, String>>()
-    //       .await.unwrap();
-    //     println!("result:{:?}", res);
-    //     Ok::<(), String>(())
-    //   };
-  
-    //   resp_list.push(resp);
-    // }
-    // let res = join_all(resp_list).await;
     
     self.all_path().await;
-    
   }
 
+  /// 单个文件上传
   async fn one_file(&self){
     print!("正在上传 {:?} (1/1)\r", self.source.file_name().unwrap());
     let res = self.client.put_file(self.source.to_path_buf(), self.target.as_str()).await;
@@ -64,6 +46,7 @@ impl<'a> Upload<'a> {
     }
   }
 
+  /// 整个目录下的文件上传
   async fn all_path(&self){
     let current_count: Count = Arc::new(Mutex::new(0));
     let mut tasks = Vec::new();
