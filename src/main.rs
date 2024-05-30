@@ -13,7 +13,9 @@ async fn main() {
         Commands::Ls { name } => {
             app.list(name).await;
         }
-        Commands::Up => println!("up"),
+        Commands::Up { src, dest } => {
+            app.upload(src, dest).await;
+        }
         Commands::Down => println!("down"),
         Commands::Delete => println!("delete"),
     }
@@ -28,8 +30,19 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Ls { name: Option<String> },
-    Up,
+    /// 读取文件列表
+    Ls {
+        /// 要读取的目录
+        name: Option<String>,
+    },
+
+    /// 上传文件
+    Up {
+        /// 原文件路径
+        src: String,
+        /// OSS 路径
+        dest: String,
+    },
     Down,
     Delete,
 }

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use aliyun_oss_client::{types::ObjectQuery, Bucket, Client, EndPoint, Key, Secret};
+use aliyun_oss_client::{types::ObjectQuery, Bucket, Client, EndPoint, Key, Object, Secret};
 
 pub struct App {
     client: Client,
@@ -8,9 +8,10 @@ pub struct App {
 
 impl App {
     pub fn new() -> App {
-        App {
-            client: init_client(),
-        }
+        let mut client = init_client();
+        client.set_bucket(Bucket::new("honglei123", EndPoint::CN_SHANGHAI));
+
+        App { client }
     }
 
     pub async fn list(&self, in_dir: &Option<String>) {
@@ -53,7 +54,23 @@ impl App {
             println!("📄 {}", item.get_path());
             println!("");
         }
-        //println!("");
+    }
+
+    pub async fn upload(&self, src: &str, dest: &str) {
+        let current_dir = std::env::current_dir().expect("获取当前目录失败");
+        let file_path = current_dir.join(src);
+
+        let content = std::fs::read_to_string(file_path).expect("读取文件失败");
+
+        let content_vec = content.into_bytes();
+
+        let obj = Object::new(dest);
+
+        obj.upload(content_vec, &self.client)
+            .await
+            .expect("上传失败");
+
+        println!("上传成功");
     }
 }
 
