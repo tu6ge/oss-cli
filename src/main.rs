@@ -10,8 +10,8 @@ async fn main() {
     let app = App::new();
 
     match &cli.command {
-        Commands::Ls => {
-            app.list().await;
+        Commands::Ls { name } => {
+            app.list(name).await;
         }
         Commands::Up => println!("up"),
         Commands::Down => println!("down"),
@@ -28,7 +28,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Ls,
+    Ls { name: Option<String> },
     Up,
     Down,
     Delete,
