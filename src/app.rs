@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, io::Write};
 
 use aliyun_oss_client::{types::ObjectQuery, Bucket, Client, EndPoint, Key, Object, Secret};
 
@@ -71,6 +71,18 @@ impl App {
             .expect("上传失败");
 
         println!("上传成功");
+    }
+
+    pub async fn download(&self, src: &str, dest: &str) {
+        let obj = Object::new(src);
+        let vec = obj.download(&self.client).await.expect("下载文件失败");
+
+        let current_dir = std::env::current_dir().expect("获取当前目录失败");
+        let file_path = current_dir.join(dest);
+        let mut file = std::fs::File::create(file_path).expect("文件创建失败");
+        file.write_all(&vec).expect("文件写入内容失败");
+
+        println!("下载成功");
     }
 }
 

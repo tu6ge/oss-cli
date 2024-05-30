@@ -16,7 +16,9 @@ async fn main() {
         Commands::Up { src, dest } => {
             app.upload(src, dest).await;
         }
-        Commands::Down => println!("down"),
+        Commands::Down { src, dest } => {
+            app.download(src, dest).await;
+        }
         Commands::Delete => println!("delete"),
     }
 }
@@ -43,6 +45,13 @@ enum Commands {
         /// OSS 路径
         dest: String,
     },
-    Down,
+
+    /// 下载文件
+    Down {
+        /// OSS 路径
+        src: String,
+        /// 本地的相对路径
+        dest: String,
+    },
     Delete,
 }
