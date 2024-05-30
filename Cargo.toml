@@ -1,0 +1,16 @@
+[package]
+name = "oss-new-cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+# crossterm = "0.27.0"
+# ratatui = {version = "0.26.3", features = ["all-widgets"]}
+
+# aliyun-oss-client = {version= "0.13.0-alpha2"}
+aliyun-oss-client = {path="../oss-rs"}
+dotenv = "0.15.0"
+tokio = {version="1.37.0", features = ["full"]}
