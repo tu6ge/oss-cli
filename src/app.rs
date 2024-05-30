@@ -84,6 +84,13 @@ impl App {
 
         println!("下载成功");
     }
+
+    pub async fn delete(&self, name: &str) {
+        let obj = Object::new(name);
+        obj.delete(&self.client).await.expect("删除失败");
+
+        println!("删除成功");
+    }
 }
 
 pub fn init_client() -> Client {

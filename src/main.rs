@@ -19,7 +19,9 @@ async fn main() {
         Commands::Down { src, dest } => {
             app.download(src, dest).await;
         }
-        Commands::Delete => println!("delete"),
+        Commands::Delete { name } => {
+            app.delete(name).await;
+        }
     }
 }
 
@@ -53,5 +55,10 @@ enum Commands {
         /// 本地的相对路径
         dest: String,
     },
-    Delete,
+
+    /// 删除文件
+    Delete {
+        /// 要删除的文件
+        name: String,
+    },
 }
