@@ -58,7 +58,7 @@ enum Commands {
 
     /// 删除文件
     Delete {
-        /// 要删除的文件
+        /// 文件的完整路径
         name: String,
     },
 }
