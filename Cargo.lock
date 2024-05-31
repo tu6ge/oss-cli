@@ -774,8 +774,10 @@ name = "oss-new-cli"
 version = "0.1.0"
 dependencies = [
  "aliyun-oss-client",
+ "chrono",
  "clap",
  "dotenv",
+ "serde",
  "term_grid",
  "tokio",
 ]

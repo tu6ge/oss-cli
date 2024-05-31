@@ -1,6 +1,8 @@
 use std::{collections::HashSet, io::Write};
 
 use aliyun_oss_client::{types::ObjectQuery, Bucket, Client, EndPoint, Key, Object, Secret};
+use chrono::{DateTime, Utc};
+use serde::Deserialize;
 
 pub struct App {
     client: Client,
@@ -24,18 +26,18 @@ impl App {
             query.insert(ObjectQuery::PREFIX, in_dir);
         }
 
-        let res = Bucket::new("honglei123", EndPoint::CN_SHANGHAI)
-            .get_objects(&query, &self.client)
+        let (res, _): (Vec<ListObject>, _) = Bucket::new("honglei123", EndPoint::CN_SHANGHAI)
+            .export_objects(&query, &self.client)
             .await
             .unwrap();
 
-        let list = res.get_vec();
+        let list = res;
 
         let mut paths = HashSet::new();
         let mut files = HashSet::new();
 
         for item in list.iter() {
-            let mut file = File::new(item.get_path());
+            let mut file = File::new(&item.path, &item.date);
             if let Some(in_dir) = in_dir {
                 file = file.sub(in_dir);
             }
@@ -56,12 +58,12 @@ impl App {
 
         for item in paths.iter() {
             grid.add(Cell::from(format!("📂 {}", item)));
-            grid.add(Cell::from(format!("")));
+            grid.add(Cell::from(""));
         }
 
         for item in files.iter() {
             grid.add(Cell::from(format!("📄 {}", item.get_path())));
-            grid.add(Cell::from(format!("18:33")));
+            grid.add(Cell::from(item.date()));
         }
         println!("{}", grid.fit_into_columns(2));
     }
@@ -118,11 +120,20 @@ pub fn init_client() -> Client {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct File {
     path: String,
+    date: DateTime<Utc>,
 }
 
 impl File {
-    pub fn new<P: Into<String>>(path: P) -> File {
-        File { path: path.into() }
+    pub fn new<P: Into<String>>(path: P, date: &str) -> File {
+        let date: DateTime<Utc> = date.parse().unwrap();
+        File {
+            path: path.into(),
+            date,
+        }
+    }
+
+    fn date(&self) -> String {
+        format!("{}", self.date.format("%Y-%m-%d %H:%M"))
     }
 
     pub fn sub(self, prefix: &str) -> File {
@@ -136,6 +147,7 @@ impl File {
 
         File {
             path: (&self.path[prefix.len()..]).to_string(),
+            date: self.date,
         }
     }
 
@@ -175,4 +187,13 @@ impl File {
     pub fn get_path(&self) -> &str {
         &self.path
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct ListObject {
+    #[serde(rename = "Key")]
+    path: String,
+
+    #[serde(rename = "LastModified")]
+    date: String,
 }

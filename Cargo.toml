@@ -15,3 +15,5 @@ aliyun-oss-client = {path="../oss-rs"}
 dotenv = "0.15.0"
 tokio = {version="1.37.0", features = ["full"]}
 term_grid = "0.2"
+serde = "1.0"
+chrono = {version = "^0.4"}
