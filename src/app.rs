@@ -4,30 +4,51 @@ use aliyun_oss_client::{types::ObjectQuery, Bucket, Client, EndPoint, Key, Objec
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
+#[derive(Clone)]
 pub struct App {
     client: Client,
+    pub next_token: Option<String>,
+    pub list_content: Option<String>,
+    pub is_last: bool,
 }
 
 impl App {
     pub fn new() -> App {
         let client = init_client();
-        App { client }
+        App {
+            client,
+            next_token: None,
+            list_content: None,
+            is_last: false,
+        }
     }
 
-    pub async fn list(&self, in_dir: &Option<String>) {
+    pub fn get_list_content(&self) -> Option<String> {
+        self.list_content.clone()
+    }
+
+    pub async fn list(&mut self, in_dir: &Option<String>, next_token: Option<String>) {
         use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
         let mut query = ObjectQuery::new();
-        query.insert(ObjectQuery::MAX_KEYS, "20");
+        query.insert(ObjectQuery::MAX_KEYS, "30");
 
         if let Some(in_dir) = in_dir {
             query.insert(ObjectQuery::PREFIX, in_dir);
         }
+        if let Some(token) = next_token {
+            query.insert(ObjectQuery::CONTINUATION_TOKEN, token);
+        }
 
-        let (res, _): (Vec<ListObject>, _) = Bucket::new("honglei123", EndPoint::CN_SHANGHAI)
+        let (res, token): (Vec<ListObject>, _) = Bucket::new("honglei123", EndPoint::CN_SHANGHAI)
             .export_objects(&query, &self.client)
             .await
             .unwrap();
+        if let None = token {
+            self.is_last = true;
+        } else {
+            self.next_token = token;
+        }
 
         let list = res;
 
@@ -63,7 +84,7 @@ impl App {
             grid.add(Cell::from(format!("📄 {}", item.get_path())));
             grid.add(Cell::from(item.date()));
         }
-        println!("{}", grid.fit_into_columns(2));
+        self.list_content = Some(format!("{}", grid.fit_into_columns(2)));
     }
 
     pub async fn upload(&self, src: &str, dest: &str) {
