@@ -7,11 +7,11 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-# crossterm = "0.27.0"
-# ratatui = {version = "0.26.3", features = ["all-widgets"]}
+crossterm = "0.27.0"
+ratatui = {version = "0.26.3", features = ["all-widgets"]}
 
-aliyun-oss-client = {version= "0.13.0-alpha3"}
-# aliyun-oss-client = {path="../oss-rs"}
+aliyun-oss-client = {version= "0.13.0-alpha4"}
+#aliyun-oss-client = {path="../oss-rs"}
 dotenv = "0.15.0"
 tokio = {version="1.37.0", features = ["full"]}
 term_grid = "0.2"

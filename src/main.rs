@@ -1,17 +1,18 @@
 use app::App;
 use clap::{Parser, Subcommand};
+use std::io::Result;
 
 mod app;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let app = App::new();
+    let mut app = App::new();
 
     match &cli.command {
         Commands::Ls { name } => {
-            app.list(name).await;
+            app.list_page(name).await?;
         }
         Commands::Up { src, dest } => {
             app.upload(src, dest).await;
@@ -23,6 +24,8 @@ async fn main() {
             app.delete(name).await;
         }
     }
+
+    Ok(())
 }
 
 #[derive(Parser)]

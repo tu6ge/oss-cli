@@ -1,33 +1,123 @@
-use std::{collections::HashSet, io::Write};
+use std::collections::HashSet;
 
 use aliyun_oss_client::{types::ObjectQuery, Bucket, Client, EndPoint, Key, Object, Secret};
 use chrono::{DateTime, Utc};
+use crossterm::{
+    event::{self, KeyCode, KeyEventKind},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+use ratatui::{
+    layout::{Constraint, Direction, Layout},
+    prelude::{CrosstermBackend, Stylize, Terminal},
+    widgets::Paragraph,
+};
 use serde::Deserialize;
+use std::io::{stdout, Result, Write};
 
+#[derive(Clone)]
 pub struct App {
     client: Client,
+    pub next_token: Option<String>,
+    pub list_content: Option<String>,
+    pub is_last: bool,
 }
 
 impl App {
     pub fn new() -> App {
         let client = init_client();
-        App { client }
+        App {
+            client,
+            next_token: None,
+            list_content: None,
+            is_last: false,
+        }
     }
 
-    pub async fn list(&self, in_dir: &Option<String>) {
+    pub fn get_list_content(&self) -> Option<String> {
+        self.list_content.clone()
+    }
+
+    pub async fn list_page(&mut self, in_dir: &Option<String>) -> Result<()> {
+        stdout().execute(EnterAlternateScreen)?;
+        enable_raw_mode()?;
+        let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+        terminal.clear()?;
+
+        self.list(in_dir, None).await;
+
+        loop {
+            let content = self.get_list_content().unwrap();
+            terminal.draw(|frame| {
+                let layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints(vec![Constraint::Percentage(90), Constraint::Percentage(10)])
+                    .split(frame.size());
+                frame.render_widget(
+                    Paragraph::new(content.clone()).white().on_black(),
+                    layout[0],
+                );
+
+                if self.is_last {
+                    frame.render_widget(
+                        Paragraph::new("已经是最后一页了，按 q 退出")
+                            .white()
+                            .on_black()
+                            .centered(),
+                        layout[1],
+                    );
+                } else {
+                    frame.render_widget(
+                        Paragraph::new("按 s 查询下一页，按 q 退出")
+                            .white()
+                            .on_black()
+                            .centered(),
+                        layout[1],
+                    );
+                }
+            })?;
+            if event::poll(std::time::Duration::from_millis(16))? {
+                if let event::Event::Key(key) = event::read()? {
+                    if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                        break;
+                    }
+                    if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('s') {
+                        if !self.is_last {
+                            self.list(in_dir, self.next_token.clone()).await;
+                        }
+                    }
+                }
+            }
+        }
+
+        stdout().execute(LeaveAlternateScreen)?;
+        disable_raw_mode()?;
+
+        Ok(())
+    }
+
+    pub async fn list(&mut self, in_dir: &Option<String>, next_token: Option<String>) {
         use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
         let mut query = ObjectQuery::new();
-        query.insert(ObjectQuery::MAX_KEYS, "20");
+        query.insert(ObjectQuery::MAX_KEYS, "30");
 
         if let Some(in_dir) = in_dir {
             query.insert(ObjectQuery::PREFIX, in_dir);
         }
+        if let Some(token) = next_token {
+            query.insert(ObjectQuery::CONTINUATION_TOKEN, token);
+        }
 
-        let (res, _): (Vec<ListObject>, _) = Bucket::new("honglei123", EndPoint::CN_SHANGHAI)
+        let (res, token): (Vec<ListObject>, _) = Bucket::new("honglei123", EndPoint::CN_SHANGHAI)
             .export_objects(&query, &self.client)
             .await
             .unwrap();
+        if let None = token {
+            self.is_last = true;
+        } else {
+            self.next_token = token;
+        }
 
         let list = res;
 
@@ -63,7 +153,7 @@ impl App {
             grid.add(Cell::from(format!("📄 {}", item.get_path())));
             grid.add(Cell::from(item.date()));
         }
-        println!("{}", grid.fit_into_columns(2));
+        self.list_content = Some(format!("{}", grid.fit_into_columns(2)));
     }
 
     pub async fn upload(&self, src: &str, dest: &str) {
