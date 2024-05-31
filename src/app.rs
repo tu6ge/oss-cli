@@ -15,6 +15,8 @@ impl App {
     }
 
     pub async fn list(&self, in_dir: &Option<String>) {
+        use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
+
         let mut query = ObjectQuery::new();
         query.insert(ObjectQuery::MAX_KEYS, "20");
 
@@ -45,15 +47,23 @@ impl App {
                 }
             }
         }
+        let mut grid = Grid::new(GridOptions {
+            filling: Filling::Spaces(3),
+            direction: Direction::LeftToRight,
+        });
+        grid.add(Cell::from(format!("文件名")));
+        grid.add(Cell::from(format!("修改时间")));
+
         for item in paths.iter() {
-            println!("📂 {}", item);
-            println!("");
+            grid.add(Cell::from(format!("📂 {}", item)));
+            grid.add(Cell::from(format!("")));
         }
 
         for item in files.iter() {
-            println!("📄 {}", item.get_path());
-            println!("");
+            grid.add(Cell::from(format!("📄 {}", item.get_path())));
+            grid.add(Cell::from(format!("18:33")));
         }
+        println!("{}", grid.fit_into_columns(2));
     }
 
     pub async fn upload(&self, src: &str, dest: &str) {
