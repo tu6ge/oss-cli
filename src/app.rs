@@ -10,9 +10,7 @@ pub struct App {
 
 impl App {
     pub fn new() -> App {
-        let mut client = init_client();
-        client.set_bucket(Bucket::new("honglei123", EndPoint::CN_SHANGHAI));
-
+        let client = init_client();
         App { client }
     }
 
@@ -111,10 +109,17 @@ pub fn init_client() -> Client {
     use dotenv::dotenv;
 
     dotenv().ok();
-    let key = env::var("ALIYUN_KEY_ID").unwrap();
-    let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
+    let key = env::var("ALIYUN_KEY_ID").expect("未设置 ALIYUN_KEY_ID 环境变量");
+    let secret = env::var("ALIYUN_KEY_SECRET").expect("未设置 ALIYUN_KEY_SECRET 环境变量");
+    let endpoint = env::var("ALIYUN_ENDPOINT").expect("未设置 ALIYUN_ENDPOINT 环境变量");
+    let bucket = env::var("ALIYUN_BUCKET").expect("未设置 ALIYUN_BUCKET 环境变量");
 
-    Client::new(Key::new(key), Secret::new(secret))
+    let mut client = Client::new(Key::new(key), Secret::new(secret));
+    client.set_bucket(Bucket::new(
+        bucket,
+        EndPoint::new(&endpoint).expect("找不到匹配的 endpoint"),
+    ));
+    client
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
