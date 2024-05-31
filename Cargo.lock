@@ -32,6 +32,8 @@ dependencies = [
 [[package]]
 name = "aliyun-oss-client"
 version = "0.13.0-alpha4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60271ce863292662a9f09ce7735bcd274ab97e9f5222110d30057cca29f8c1d7"
 dependencies = [
  "base64",
  "chrono",
